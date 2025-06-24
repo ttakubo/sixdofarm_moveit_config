@@ -1,0 +1,30 @@
+# This config file is used by ros2_control
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    sixdofarm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+sixdofarm_controller:
+  ros__parameters:
+    joints:
+      - Link1_2_Link2
+      - Link2_2_Link3
+      - Link3_2_Link4
+      - Link4_2_Link5
+      - Link5_2_Link6
+      - Link6_2_Link7
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 0.05
+    allow_partial_joints_goal: true

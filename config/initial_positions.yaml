@@ -1,0 +1,9 @@
+# Default initial positions for sixdofarm's ros2_control fake system
+
+initial_positions:
+  Link1_2_Link2: 0
+  Link2_2_Link3: 0
+  Link3_2_Link4: 0
+  Link4_2_Link5: 0
+  Link5_2_Link6: 0
+  Link6_2_Link7: 0

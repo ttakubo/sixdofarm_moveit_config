@@ -1,0 +1,19 @@
+# MoveIt uses this configuration for controller management
+
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+
+moveit_simple_controller_manager:
+  controller_names:
+    - sixdofarm_controller
+
+  sixdofarm_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    joints:
+      - Link1_2_Link2
+      - Link2_2_Link3
+      - Link3_2_Link4
+      - Link4_2_Link5
+      - Link5_2_Link6
+      - Link6_2_Link7
