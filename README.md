@@ -8,7 +8,7 @@ ROS 2 version : Humble
 
 ロボットモデル： <a href="https://github.com/ttakubo/csv2urdf">csv2urdf</a>で作成した6自由度ロボットアーム
 
-## ROS 2 HumbleとGazebo FortressによるMoveIt!マニピュレータシミュレーションガイド
+## ROS 2 HumbleによるMoveIt!マニピュレータシミュレーションガイド
 
 ROS 2 Humbleを使用して、マニピュレータの動作計画ライブラリであるMoveIt! 2のシミュレーション環境を構築する手順を解説します。
 
@@ -48,10 +48,12 @@ sudo apt install -y \
 -   `moveit`: MoveIt! 2本体
 -   `gazebo-ros-pkgs`: GazeboとROS 2を連携させるための基本パッケージ
 -   `ros2_control`, `ros2_controllers`: ハードウェア/シミュレーションを抽象化する制御フレームワーク
--   `ros-gz`: Gazebo FortressとROS 2を連携させるための新世代パッケージ
+-   `ros-gz`: Gazebo FortressとROS 2を連携させるためのパッケージ
 -   `xacro`: XMLマクロを使ってURDFを記述するためのツール
 
-#### 2.2 ワークスペースの作成
+#### 2.2 ワークスペースの作成(必要なら)
+いつも使っている~/ros2_ws/srcでOK。
+別のワークスペースにしたい場合は下記の要領で作成してください。
 
 ```bash
 mkdir -p ~/moveit_ws/src
@@ -59,6 +61,8 @@ cd ~/moveit_ws/src
 ```
 
 この`src`ディレクトリに、後ほど作成するパッケージを配置します。
+
+新規に作ったワークスペースやもともとのワークスペースを使うにせよ、buildのたびにワークスペース直下にできるinstallディレクトリ内のsetup.bashに対してsourceコマンドで更新する必要があります。
 
 ---
 
@@ -77,9 +81,9 @@ ros2 launch moveit_setup_assistant setup_assistant.launch.py
 1.  **Create New MoveIt Configuration Package** をクリックします。
 2.  **Load Robot Model**: `Browse`をクリックし、自分で作ったロボットのURDFファイルを選択します。
 
-    2025年6月24日時点でhomeディレクトリに置いたURDFが何故か読み込めないため、自分で作ったURDFファイルを下記コマンドでmoveit_setup_assistantのinstallされているディレクトリ (ex: /opt/ros/humble/share/moveit_setup_assistant) へコピーしておく。
+    <b>2025年6月24日時点</b>でhomeディレクトリに置いたURDFが何故か読み込めないため、自分で作ったURDFファイルを下記コマンドでmoveit_setup_assistantのinstallされているディレクトリ (ex: /opt/ros/humble/share/moveit_setup_assistant) へコピーしておく。管理者権限ではないとコピーできない場所なのでsudoを使うこと。
 
-        cp sixdofarm.urdf /opt/ros/humble/share/moveit_setup_assistant
+        sudo cp sixdofarm.urdf /opt/ros/humble/share/moveit_setup_assistant
 
     上記のコマンドでコピーしたURDFのパスをファイルダイアログで指定します。（例: `/opt/ros/humble/share/moveit_setup_assistant/sixdofarm.urdf`）
 
@@ -95,56 +99,69 @@ ros2 launch moveit_setup_assistant setup_assistant.launch.py
 
     ただし、今回の例ではcsv2urdfで作成したsixdofarm.urdfは初めからworldも付けてモデル化しているのでここのステップはスキップしてOK。
 
-下記途中：ここまで
 
 5.  **Planning Groups**: 動作計画の対象となる関節グループを定義します。
     -   **アームの追加**:
         -   `Add Group`をクリック。
-        -   Group Name: `panda_arm`
-        -   Kinematic Solver: `KDLKinematicsPlugin`
-        -   `Add Joints`をクリックし、`panda_joint1` から `panda_joint7` までを選択して `>` で追加します。
-    -   **ハンドの追加**:
+        -   Group Name: `sixdofarm`
+        -   Kinematic Solver: `kdl_kinematics_plugin/KDLKinematicsPlugin`
+        -   `Add Joints`をクリックし、`Link1_2_Link2` から `Link6_2_Link7` までの6つの関節を選択して `>` で追加。
+        -   `Links`を選択して、下にあるボタンの`Edit selected`をクリック。
+        -   `Link1` から `Link7` までの7つのリンクを選択して `>` で追加。        
+        -   `Chain`を選択して、下にあるボタンの`Edit selected`をクリック。
+        -   ツリーを展開後に`Link1` を選択して、下にあるBase Linkの右横にある`Choose selected`をクリックして割り当てる。同じく `Link7`を選択して、Top Linkの右横にある`Choose selected`をクリックして割り当てる。 
+
+    -   **ハンドがある場合はここで追加しておく(今回の例ではいらない）**:
         -   `Add Group`をクリック。
-        -   Group Name: `panda_hand`
-        -   `Add Joints`をクリックし、`panda_finger_joint1` と `panda_finger_joint2` を選択して追加します。
+        -   Group Name: `***_hand`
+        -   `Add Joints`をクリックし、`***_finger_joint1` と `***_finger_joint2` を選択して追加。
 
 6.  **Robot Poses**: 事前定義されたポーズを追加します。
     -   `Add Pose`をクリック。
     -   Pose Name: `home`
-    -   Planning Group: `panda_arm`
-    -   スライダーを動かして、ロボットを直立に近い姿勢にし、`Save`します。
+    -   Planning Group: `sixdofarm`
+    -   スライダーを動かして、ロボットが良く使う姿勢にし、`Save`します。
 
-7.  **End Effectors**: エンドエフェクタ（ハンド）を定義します。
+7.  **End Effectors**: エンドエフェクタ（ハンド）を定義するとき利用（今回は必要なし）。
     -   `Add End Effector`をクリック。
     -   End Effector Name: `hand`
-    -   End Effector Group: `panda_hand` （先ほど作成したハンドのグループ）
+    -   End Effector Group: `***_hand` （先ほど作成したハンドのグループ）
     -   Parent Link: `panda_link8` （ハンドが取り付けられているリンク）
     -   Parent Group: `panda_arm`
 
-8.  **ROS 2 Control**: シミュレーションや実機を制御するための設定です。
-    -   `Add Controller`をクリック。
-    -   Controller Name: `panda_arm_controller`
+8.  **ros2_control URDF Modifications**: シミュレーションや実機を制御するためのros2_controlの設定をURDFに自動で追加してくれる。
+    -   `Command interfaces`と`State interfaces`で必要となる項目にチェックを付ける。デフォルトでは、`Command interfaces`はposition、`State interfaces`はpositionとvelocityにチェックがついている。
+    -   `Add interfaces`をクリック。
+
+9.  **ROS 2 Controllers**: ros2_controlの設定。
+    -   `Auto Add joint Trajectory Controller Controllers For Each Planning Group`をクリック。
+    自動で下記が追加される
+    -   Controller Name: `sixdofarm_controller`
     -   Controller Type: `joint_trajectory_controller/JointTrajectoryController`
-    -   `Controller Joints`タブに移動し、`panda_joint1`から`panda_joint7`までを追加します。
-    -   同様に、`panda_hand_controller` (`gripper_controllers/GripperActionController`) も追加します。
+    -   `Joints`に、`Link1_2_Link2`から`Link6_2_Link7`までの6関節が追加されている。
 
-9.  **Gazebo Simulation**: Gazebo用のURDFを生成します。
-    -   `Generate Gazebo-compatible URDF`をクリック。
-    -   `File Path`がワークスペースの`src`ディレクトリを指していることを確認します。
+10.  **Moveit Controllers**: moveit controllerの設定。
+    -   `Auto Add Followjoints Trajectrory Controllers For Each Planning Group`をクリック。
+    自動で下記が追加される
+    -   Controller Name: `sixdofarm_controller`
+    -   Controller Type: `FollowJointTrajectory`
+    -   `Joints`に、`Link1_2_Link2`から`Link6_2_Link7`までの6関節が追加されている。
 
-10. **Configuration Files**: 最後に設定ファイルを生成します。
+11. **Configuration Files**: 最後に設定ファイルを生成します。
     -   `Configuration Files`タブに移動します。
-    -   `Setup package path`で、`~/moveit_ws/src` を指定します。
-    -   `Package Name`を `panda_moveit_config` とします。
-    -   `Generate Package`をクリックします。成功すると、`~/moveit_ws/src/panda_moveit_config` に設定ファイル一式が生成されます。
+    -   `Configuration Package Save Path`で、Browsボタンから`~/moveit_ws/src` を指定します(~/ros2_ws/srcでもOK)。
+    -   表示されたパスの最後にパッケージの名前を追記します。今回は、`sixdofarm_moveit_config` とします。（ex:/home/takubo/ros2_ws/src/sixdofarm_moveit_config)
+    -   `Generate Package`をクリックします。成功すると、`~/moveit_ws/src/sixdof_moveit_config` に設定ファイル一式が生成されます。
 
 アシスタントを閉じてください。
 
 ---
 
-### 4. Gazeboとの連携とシミュレーション実行
+### 4. Rviz上でのシミュレーション実行
 
-生成されたファイルだけではGazebo Fortressとの連携が不十分なため、いくつかファイルを追加・修正します。
+生成されたファイルだけではなぜかシミュレーションの設定が不十分なため、いくつかファイルを追加・修正します。
+
+ここまで
 
 #### 4.1 `ros2_control`の設定
 
