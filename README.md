@@ -105,11 +105,12 @@ ros2 launch moveit_setup_assistant setup_assistant.launch.py
         -   `Add Group`をクリック。
         -   Group Name: `sixdofarm`
         -   Kinematic Solver: `kdl_kinematics_plugin/KDLKinematicsPlugin`
-        -   `Add Joints`をクリックし、`Link1_2_Link2` から `Link6_2_Link7` までの6つの関節を選択して `>` で追加。
+        - `OMPL Planning`のGroup Default PlannerにトグルからRRTを選択。
+        -   `Add Joints`をクリックし、`Link1_2_Link2` から `Link6_2_Link7` までの6つの関節を選択して `>` で追加して、下にある`Save`ボタンをクリック。
         -   `Links`を選択して、下にあるボタンの`Edit selected`をクリック。
         -   `Link1` から `Link7` までの7つのリンクを選択して `>` で追加。        
         -   `Chain`を選択して、下にあるボタンの`Edit selected`をクリック。
-        -   ツリーを展開後に`Link1` を選択して、下にあるBase Linkの右横にある`Choose selected`をクリックして割り当てる。同じく `Link7`を選択して、Top Linkの右横にある`Choose selected`をクリックして割り当てる。 
+        -   ツリーを展開後に`Link1` を選択して、下にあるBase Linkの右横にある`Choose selected`をクリックして割り当てる。同じく `Link7`を選択して、Top Linkの右横にある`Choose selected`をクリックして割り当てる。 選択が終わったら下の`Save`ボタンをクリック。
 
     -   **ハンドがある場合はここで追加しておく(今回の例ではいらない）**:
         -   `Add Group`をクリック。
@@ -129,25 +130,33 @@ ros2 launch moveit_setup_assistant setup_assistant.launch.py
     -   Parent Link: `panda_link8` （ハンドが取り付けられているリンク）
     -   Parent Group: `panda_arm`
 
-8.  **ros2_control URDF Modifications**: シミュレーションや実機を制御するためのros2_controlの設定をURDFに自動で追加してくれる。
+8.  **Passive Joints**: 今回はスキップ
+
+9.  **ros2_control URDF Modifications**: シミュレーションや実機を制御するためのros2_controlの設定をURDFに自動で追加してくれる。
     -   `Command interfaces`と`State interfaces`で必要となる項目にチェックを付ける。デフォルトでは、`Command interfaces`はposition、`State interfaces`はpositionとvelocityにチェックがついている。
     -   `Add interfaces`をクリック。
 
-9.  **ROS 2 Controllers**: ros2_controlの設定。
+10.  **ROS 2 Controllers**: ros2_controlの設定。
     -   `Auto Add joint Trajectory Controller Controllers For Each Planning Group`をクリック。
     自動で下記が追加される
     -   Controller Name: `sixdofarm_controller`
     -   Controller Type: `joint_trajectory_controller/JointTrajectoryController`
     -   `Joints`に、`Link1_2_Link2`から`Link6_2_Link7`までの6関節が追加されている。
 
-10.  **Moveit Controllers**: moveit controllerの設定。
+11.  **Moveit Controllers**: moveit controllerの設定。
     -   `Auto Add Followjoints Trajectrory Controllers For Each Planning Group`をクリック。
     自動で下記が追加される
     -   Controller Name: `sixdofarm_controller`
     -   Controller Type: `FollowJointTrajectory`
     -   `Joints`に、`Link1_2_Link2`から`Link6_2_Link7`までの6関節が追加されている。
 
-11. **Configuration Files**: 最後に設定ファイルを生成します。
+12. **Perception**: カメラなどの認識。今回はスキップ
+
+13. **Launch Files**: 生成されるLaunch Fileのリスト。全部チェックマーク入っていてよい。
+
+14. **Auther Information**: 名前とメールアドレスを入力。なにも入れないとエラーが起きるので適当に記載しておくこと。
+
+15. **Configuration Files**: 最後に設定ファイルを生成します。
     -   `Configuration Files`タブに移動します。
     -   `Configuration Package Save Path`で、Browsボタンから`~/moveit_ws/src` を指定します(~/ros2_ws/srcでもOK)。
     -   表示されたパスの最後にパッケージの名前を追記します。今回は、`sixdofarm_moveit_config` とします。（ex:/home/takubo/ros2_ws/src/sixdofarm_moveit_config)
@@ -161,211 +170,165 @@ ros2 launch moveit_setup_assistant setup_assistant.launch.py
 
 生成されたファイルだけではなぜかシミュレーションの設定が不十分なため、いくつかファイルを追加・修正します。
 
-ここまで
-
 #### 4.1 `ros2_control`の設定
 
 Gazeboが`ros2_control`経由でロボットを制御できるように設定ファイルを作成します。
 
-1.  **コントローラ設定ファイル (`controllers.yaml`) の修正**
-    `~/moveit_ws/src/panda_moveit_config/config/panda_controllers.yaml` を開き、以下のように修正します。`joint_state_broadcaster`を追加することが重要です。
+1.  **コントローラ設定ファイル (`sixdofarm_controllers.yaml`) の追加**
+    `~/moveit_ws/src/sixdofarm_moveit_config/config/sixdofarm_controllers.yaml` を作成し、以下の内容を記載します。
 
     ```yaml
     controller_manager:
-      ros__parameters:
-        update_rate: 100
+    ros__parameters:
+        update_rate: 100  # Hz
+
+        sixdofarm_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
 
         joint_state_broadcaster:
-          type: joint_state_broadcaster/JointStateBroadcaster
+        type: joint_state_broadcaster/JointStateBroadcaster
 
-        panda_arm_controller:
-          type: joint_trajectory_controller/JointTrajectoryController
-
-        panda_hand_controller:
-          type: gripper_controllers/GripperActionController
-
-    panda_arm_controller:
-      ros__parameters:
+    sixdofarm_controller:
+    ros__parameters:
         joints:
-          - panda_joint1
-          - panda_joint2
-          - panda_joint3
-          - panda_joint4
-          - panda_joint5
-          - panda_joint6
-          - panda_joint7
+        - Link1_2_Link2
+        - Link2_2_Link3
+        - Link3_2_Link4
+        - Link4_2_Link5
+        - Link5_2_Link6
+        - Link6_2_Link7
         command_interfaces:
-          - position
+        - position
         state_interfaces:
-          - position
-          - velocity
-
-    panda_hand_controller:
-      ros__parameters:
-        joint: panda_finger_joint1
+        - position
+        - velocity
     ```
 
-2.  **`ros2_control`用URDF (`panda.ros2_control.xacro`) の作成**
-    Gazeboのシミュレーションプラグインを読み込むためのファイルを作成します。
-    `~/moveit_ws/src/panda_moveit_config/config/panda.ros2_control.xacro` を新規作成します。
+2.  **Moveitのコントローラ(`moveit_controllers.yaml`) の修正**
+
+    `~/moveit_ws/src/sixdofarm_moveit_config/config/moveit_controllers.yaml` を修正します。<br>
+    sixdofarm_controllerのtype:の下に、action_ns:を追加する。
 
     ```xml
-    <?xml version="1.0"?>
-    <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
 
-        <xacro:macro name="panda_ros2_control" params="name">
-            <ros2_control name="${name}" type="system">
-                <hardware>
-                    <plugin>gz_ros2_control/GazeboSystem</plugin>
-                </hardware>
-                <joint name="panda_joint1">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_joint2">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_joint3">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_joint4">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_joint5">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_joint6">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_joint7">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_finger_joint1">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-                <joint name="panda_finger_joint2">
-                    <command_interface name="position"/>
-                    <state_interface name="position"/>
-                    <state_interface name="velocity"/>
-                </joint>
-            </ros2_control>
-        </xacro:macro>
-    </robot>
+    moveit_simple_controller_manager:
+    controller_names:
+        - sixdofarm_controller
+
+    sixdofarm_controller:
+        type: FollowJointTrajectory
+        action_ns: follow_joint_trajectory
+        default: true
+        joints:
+        - Link1_2_Link2
+        - Link2_2_Link3
+        - Link3_2_Link4
+        - Link4_2_Link5
+        - Link5_2_Link6
+        - Link6_2_Link7
     ```
 
-3.  **メインのURDF (`panda.urdf.xacro`) の修正**
-    元のURDFを読み込み、`ros2_control`の定義を追加します。
-    `~/moveit_ws/src/panda_moveit_config/config/panda.urdf.xacro` を開き、以下のように修正します。
+3.  **ros2_controller(`ros2_controllers.yaml`) の修正**
 
-    ```xml
-    <?xml version="1.0"?>
-    <robot name="panda" xmlns:xacro="http://www.ros.org/wiki/xacro">
-        <!-- Import panda urdf -->
-        <xacro:include filename="$(find moveit_resources_panda_description)/urdf/panda.urdf" />
+    `~/moveit_ws/src/sixdofarm_moveit_config/config/ros2_controllers.yaml` を修正
+
+    ```yaml
+    # This config file is used by ros2_control
+    controller_manager:
+    ros__parameters:
+        update_rate: 100  # Hz
+
+        sixdofarm_controller:
+        type: joint_trajectory_controller/JointTrajectoryController
+
+
+        joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+
+    sixdofarm_controller:
+    ros__parameters:
+        joints:
+        - Link1_2_Link2
+        - Link2_2_Link3
+        - Link3_2_Link4
+        - Link4_2_Link5
+        - Link5_2_Link6
+        - Link6_2_Link7
+        command_interfaces:
+        - position
+        state_interfaces:
+        - position
+        - velocity
+        constraints:
+        goal_time: 0.6
+        stopped_velocity_tolerance: 0.05
+        allow_partial_joints_goal: true
+    ```
+
+4.  **demo.launchファイル (`demo.launch.py`) の修正**
+    まずros2_control_nodeを起動、次にjoint_state_broadcasterを起動、その後、sixdofarm_controllerを起動、最後にMoveItのデモコンポーネントを起動するように修正する。
+
+    ```python
+    from moveit_configs_utils import MoveItConfigsBuilder
+    from moveit_configs_utils.launches import generate_demo_launch
+    from launch import LaunchDescription
+    from launch_ros.actions import Node
+    from launch.actions import RegisterEventHandler, IncludeLaunchDescription
+    from launch.event_handlers import OnProcessExit
+    from launch.launch_description_sources import PythonLaunchDescriptionSource
+    import os
+
+
+    def generate_launch_description():
+        moveit_config = MoveItConfigsBuilder("sixdofarm", package_name="sixdofarm_moveit_config").to_moveit_configs()
         
-        <!-- Import ros2_control description -->
-        <xacro:include filename="$(find panda_moveit_config)/config/panda.ros2_control.xacro" />
-        <xacro:panda_ros2_control name="GazeboSystem"/>
-    </robot>
-    ```
+        # ros2_control_node の追加
+        ros2_control_node = Node(
+            package='controller_manager',
+            executable='ros2_control_node',
+            parameters=[
+                {'robot_description': moveit_config.robot_description},
+                os.path.join(
+                    moveit_config.package_path, 'config', 'ros2_controllers.yaml'
+                )
+            ],
+            output='screen'
+        )
+        
+        # Start controllers after the demo launch
+        joint_state_broadcaster_spawner = Node(
+            package="controller_manager",
+            executable="spawner",
+            arguments=["joint_state_broadcaster", "-c", "/controller_manager"],
+            output="screen",
+        )
 
-#### 4.2 シミュレーション用のLaunchファイル作成
-
-GazeboとMoveIt!を連携させて起動するためのLaunchファイルを作成します。
-
-`~/moveit_ws/src/panda_moveit_config/launch/gazebo.launch.py` を新規作成します。
-
-```python
-import os
-from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription, RegisterEventHandler
-from launch.event_handlers import OnProcessExit
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-import xacro
-
-def generate_launch_description():
-    # Gazeboを起動
-    gazebo = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            os.path.join(get_package_share_directory('ros_gz_sim'), 'launch'),
-            '/gz_sim.launch.py'
-        ]),
-        launch_arguments={'gz_args': '-r -v 4 empty.sdf'}.items()
-    )
-
-    # MoveIt設定パッケージのパスを取得
-    moveit_config_pkg = FindPackageShare('panda_moveit_config')
-
-    # XACROからURDFを生成
-    robot_description_config = xacro.process_file(
-        os.path.join(moveit_config_pkg, 'config', 'panda.urdf.xacro')
-    )
-    robot_description = {'robot_description': robot_description_config.toxml()}
-
-    # robot_state_publisherの起動
-    node_robot_state_publisher = Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        output='screen',
-        parameters=[robot_description]
-    )
-
-    # Gazeboにロボットをスポーン
-    spawn_entity = Node(
-        package='ros_gz_sim',
-        executable='create',
-        output='screen',
-        arguments=['-topic', '/robot_description', '-name', 'panda', '-z', '0.5']
-    )
-
-    # ros2_controlコントローラをロード
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
-    )
-
-    panda_arm_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["panda_arm_controller", "-c", "/controller_manager"],
-    )
-
-    return LaunchDescription([
-        gazebo,
-        node_robot_state_publisher,
-        spawn_entity,
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=spawn_entity,
-                on_exit=[joint_state_broadcaster_spawner],
-            )
-        ),
-        RegisterEventHandler(
+        # Make sure the joint_state_broadcaster is started before the sixdofarm_controller
+        robot_controller_spawner = Node(
+            package="controller_manager",
+            executable="spawner",
+            arguments=["sixdofarm_controller", "-c", "/controller_manager"],
+            output="screen",
+        )
+        
+        # Ensure correct startup order
+        delay_robot_controller_spawner = RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=joint_state_broadcaster_spawner,
-                on_exit=[panda_arm_controller_spawner],
+                on_exit=[robot_controller_spawner],
             )
-        ),
-    ])
-```
+        )
+        
+        return LaunchDescription([
+            ros2_control_node,
+            joint_state_broadcaster_spawner,
+            delay_robot_controller_spawner,
+            generate_demo_launch(moveit_config)
+        ])
+    ```
+
 
 #### 4.3 ビルドと実行
 
@@ -378,389 +341,32 @@ def generate_launch_description():
     ```
 
 2.  **実行**
-    ターミナルを2つ開きます。それぞれのターミナルでワークスペースをsourceします。
+    ターミナルでワークスペースをsourceでビルドした内容を反映する。
     ```bash
     source ~/moveit_ws/install/setup.bash
     ```
-    -   **ターミナル1: Gazeboシミュレーションの起動**
+    <!-- -   **ターミナル1: Gazeboシミュレーションの起動**
         ```bash
-        ros2 launch panda_moveit_config gazebo.launch.py
+        ros2 launch sixdofarm_moveit_config gazebo.launch.py
         ```
-        Gazeboが起動し、Pandaロボットが表示されます。
+        Gazeboが起動し、sixdofarmロボットが表示されます。 -->
 
-    -   **ターミナル2: MoveIt! (RViz) の起動**
+    -   **ターミナル: MoveIt! (RViz) の起動**
         ```bash
-        ros2 launch panda_moveit_config demo.launch.py
+        ros2 launch sixdofarm_moveit_config demo.launch.py
         ```
         RVizが起動します。`MotionPlanning`パネルが表示されていることを確認します。
 
 #### 4.4 動作確認
 
 1.  RVizの`MotionPlanning`パネルを開きます。
-2.  `Planning`タブの`Query`セクションで、`Planning Group`が`panda_arm`になっていることを確認します。
+2.  `Planning`タブの`Query`セクションで、`Planning Group`が`sixdofarm`になっていることを確認します。
 3.  3Dビュー内で、エンドエフェクタ（水色の球体）の先にあるインタラクティブマーカーをドラッグして、目標の姿勢（Goal State）を設定します。
 4.  `Plan and Execute`ボタンをクリックします。
-5.  RVizとGazeboの両方で、ロボットが計画された軌道に沿って動けば成功です。
+5.  RVizとGazeboの両方で、ロボットが計画された軌道に沿って動けば成功。
 
 ---
 
-### 5. デプスカメラを用いた障害物回避マニピュレーション
+### 5. まとめと今後の展望
 
-次に、デプスカメラで検出した物体を障害物としてMoveIt!に認識させ、それを回避しながら動作するアプリケーションを作成します。
-
-#### 5.1 URDFへのデプスカメラの追加
-
-`~/moveit_ws/src/panda_moveit_config/config/panda.urdf.xacro` を編集し、デプスカメラの定義を追加します。`</robot>` タグの直前に追加してください。
-
-```xml
-        <!-- ... 既存のxacro:include と xacro:panda_ros2_control ... -->
-
-        <!-- Depth Camera Link -->
-        <link name="camera_link">
-            <visual>
-                <geometry>
-                    <box size="0.05 0.05 0.05"/>
-                </geometry>
-            </visual>
-            <collision>
-                <geometry>
-                    <box size="0.05 0.05 0.05"/>
-                </geometry>
-            </collision>
-            <inertial>
-                <mass value="0.1"/>
-                <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
-            </inertial>
-        </link>
-
-        <!-- Depth Camera Joint -->
-        <joint name="camera_joint" type="fixed">
-            <parent link="world"/>
-            <child link="camera_link"/>
-            <origin xyz="0.8 0.0 0.6" rpy="0 0.5 3.14"/>
-        </joint>
-
-        <!-- Gazebo sensor plugin for depth camera -->
-        <gazebo reference="camera_link">
-            <sensor name="depth_camera" type="depth_camera">
-                <update_rate>10.0</update_rate>
-                <camera>
-                    <horizontal_fov>1.047</horizontal_fov>
-                    <image>
-                        <width>640</width>
-                        <height>480</height>
-                        <format>R8G8B8</format>
-                    </image>
-                    <clip>
-                        <near>0.1</near>
-                        <far>10.0</far>
-                    </clip>
-                </camera>
-                <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
-                    <ros>
-                        <namespace>/_</namespace> <!-- No namespace -->
-                        <argument>--ros-args -r image_raw:=/depth_camera/image_raw -r depth_image_raw:=/depth_camera/depth/image_raw -r camera_info:=/depth_camera/camera_info -r points:=/depth_camera/points</argument>
-                    </ros>
-                    <frame_name>camera_link</frame_name>
-                </plugin>
-            </sensor>
-        </gazebo>
-```
-
-#### 5.2 Gazeboワールドの準備
-
-障害物となる箱を配置したGazeboワールドファイルを作成します。
-
-`~/moveit_ws/src/panda_moveit_config/worlds/obstacle.sdf` を新規作成します。
-
-```xml
-<?xml version="1.0" ?>
-<sdf version="1.8">
-  <world name="default">
-    <include>
-      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Sun</uri>
-    </include>
-    <include>
-      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground Plane</uri>
-    </include>
-    
-    <model name="obstacle_box">
-      <pose>0.4 0 0.5 0 0 0</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box>
-              <size>0.1 0.5 0.1</size>
-            </box>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box>
-              <size>0.1 0.5 0.1</size>
-            </box>
-          </geometry>
-          <material>
-            <ambient>1 0 0 1</ambient>
-            <diffuse>1 0 0 1</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>
-  </world>
-</sdf>
-```
-
-`gazebo.launch.py`のGazebo起動部分を修正して、このワールドを読み込むようにします。
-
-```python
-# ~/moveit_ws/src/panda_moveit_config/launch/gazebo.launch.py の一部を修正
-
-    # Gazeboを起動
-    world_file = os.path.join(moveit_config_pkg, 'worlds', 'obstacle.sdf')
-    gazebo = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            os.path.join(get_package_share_directory('ros_gz_sim'), 'launch'),
-            '/gz_sim.launch.py'
-        ]),
-        launch_arguments={'gz_args': f'-r -v 4 {world_file}'}.items() # worldファイルを指定
-    )
-```
-
-#### 5.3 障害物認識ノードの実装
-
-デプスカメラからの点群データ (`PointCloud2`) を購読し、それをMoveIt!のプランニングシーンに`CollisionObject`として追加するPythonノードを作成します。
-
-1.  **Pythonパッケージの作成**
-    ```bash
-    cd ~/moveit_ws/src
-    ros2 pkg create --build-type ament_python obstacle_detector --dependencies rclpy sensor_msgs moveit_commander sensor_msgs_py
-    ```
-
-2.  **ノードのコード作成**
-    `~/moveit_ws/src/obstacle_detector/obstacle_detector/obstacle_node.py` を作成します。
-
-    ```python
-    import rclpy
-    from rclpy.node import Node
-    from sensor_msgs.msg import PointCloud2
-    from sensor_msgs_py import point_cloud2
-    import moveit_commander
-    from geometry_msgs.msg import PoseStamped
-    import numpy as np
-    import time
-
-    class ObstacleDetector(Node):
-        def __init__(self):
-            super().__init__('obstacle_detector')
-            self.subscription = self.create_subscription(
-                PointCloud2,
-                '/depth_camera/points',
-                self.listener_callback,
-                10)
-            
-            # MoveIt Commanderの初期化
-            moveit_commander.roscpp_initialize([])
-            # PlanningSceneInterfaceが利用可能になるまで待機
-            time.sleep(5.0) 
-            self.scene = moveit_commander.PlanningSceneInterface()
-            self.get_logger().info("Obstacle Detector Node Started and connected to Planning Scene")
-
-        def listener_callback(self, msg):
-            OBSTACLE_NAME = "detected_obstacle"
-            
-            # 既存の障害物を削除
-            # get_known_object_names()でオブジェクトが存在するか確認してから削除
-            if OBSTACLE_NAME in self.scene.get_known_object_names():
-                self.scene.remove_world_object(OBSTACLE_NAME)
-
-            points = list(point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True))
-            
-            if not points:
-                self.get_logger().info("No points in point cloud to form an obstacle.")
-                return
-
-            points_np = np.array(points)
-
-            # 点群からバウンディングボックスを計算
-            min_bound = np.min(points_np, axis=0)
-            max_bound = np.max(points_np, axis=0)
-            
-            center = (min_bound + max_bound) / 2.0
-            size = max_bound - min_bound
-
-            # 小さすぎる障害物は無視
-            if np.any(size < 0.02):
-                 return
-
-            # Planning Sceneに箱として追加
-            obstacle_pose = PoseStamped()
-            obstacle_pose.header.frame_id = msg.header.frame_id
-            obstacle_pose.pose.position.x = center[0]
-            obstacle_pose.pose.position.y = center[1]
-            obstacle_pose.pose.position.z = center[2]
-            obstacle_pose.pose.orientation.w = 1.0
-            
-            self.scene.add_box(OBSTACLE_NAME, obstacle_pose, size=(float(size[0]), float(size[1]), float(size[2])))
-            
-            self.get_logger().info(f"Added/Updated obstacle '{OBSTACLE_NAME}'")
-
-    def main(args=None):
-        rclpy.init(args=args)
-        obstacle_detector_node = ObstacleDetector()
-        rclpy.spin(obstacle_detector_node)
-        obstacle_detector_node.destroy_node()
-        rclpy.shutdown()
-
-    if __name__ == '__main__':
-        main()
-    ```
-
-3.  **`setup.py`の編集**
-    `~/moveit_ws/src/obstacle_detector/setup.py` に、実行可能ファイルとしてノードを追加します。
-
-    ```python
-    # ...
-    entry_points={
-        'console_scripts': [
-            'obstacle_node = obstacle_detector.obstacle_node:main',
-        ],
-    },
-    # ...
-    ```
-
-#### 5.4 マニピュレーション実行ノードの実装
-
-障害物を回避して目標位置に移動する指令を出すノードを作成します。
-
-1.  **Pythonパッケージの作成**
-    ```bash
-    cd ~/moveit_ws/src
-    ros2 pkg create --build-type ament_python motion_commander --dependencies rclpy moveit_commander geometry_msgs
-    ```
-
-2.  **ノードのコード作成**
-    `~/moveit_ws/src/motion_commander/motion_commander/motion_node.py` を作成します。
-
-    ```python
-    import rclpy
-    from rclpy.node import Node
-    import moveit_commander
-    from geometry_msgs.msg import Pose
-    import time
-    import sys
-
-    class MotionCommanderNode(Node):
-        def __init__(self):
-            super().__init__('motion_commander_node')
-            moveit_commander.roscpp_initialize(sys.argv)
-            
-            self.robot = moveit_commander.RobotCommander()
-            self.scene = moveit_commander.PlanningSceneInterface()
-            self.group_name = "panda_arm"
-            self.move_group = moveit_commander.MoveGroupCommander(self.group_name)
-            self.move_group.set_planning_time(10.0) # 計画時間を延長
-
-            self.get_logger().info("Motion Commander Node Started")
-
-        def go_to_pose_goal(self, x, y, z):
-            self.get_logger().info(f"Going to pose: x={x}, y={y}, z={z}")
-            
-            pose_goal = Pose()
-            pose_goal.orientation.w = 0.924
-            pose_goal.orientation.y = -0.383
-            pose_goal.position.x = x
-            pose_goal.position.y = y
-            pose_goal.position.z = z
-
-            self.move_group.set_pose_target(pose_goal)
-
-            success = self.move_group.go(wait=True)
-            
-            self.move_group.stop()
-            self.move_group.clear_pose_targets()
-            
-            if success:
-                self.get_logger().info("Motion executed successfully!")
-            else:
-                self.get_logger().warn("Motion execution failed!")
-            return success
-
-    def main(args=None):
-        rclpy.init(args=args)
-        motion_node = MotionCommanderNode()
-        
-        # MoveItが完全に起動するまで待機
-        time.sleep(5)
-
-        # 障害物の向こう側へ移動
-        motion_node.go_to_pose_goal(0.4, -0.3, 0.5)
-
-        rclpy.shutdown()
-
-    if __name__ == '__main__':
-        main()
-    ```
-
-3.  **`setup.py`の編集**
-    `~/moveit_ws/src/motion_commander/setup.py` を編集します。
-
-    ```python
-    # ...
-    entry_points={
-        'console_scripts': [
-            'motion_node = motion_commander.motion_node:main',
-        ],
-    },
-    # ...
-    ```
-
-#### 5.5 統合シミュレーションの実行
-
-1.  **ビルド**
-    新しいパッケージをビルドします。
-    ```bash
-    cd ~/moveit_ws
-    colcon build
-    ```
-
-2.  **実行**
-    ターミナルを4つ開きます。それぞれでワークスペースをsourceしてください。
-    `source ~/moveit_ws/install/setup.bash`
-
-    -   **ターミナル1: Gazeboシミュレーション**
-        ```bash
-        ros2 launch panda_moveit_config gazebo.launch.py
-        ```
-        Gazeboにロボットと赤い障害物、そしてカメラが表示されます。
-
-    -   **ターミナル2: MoveIt! (RViz)**
-        ```bash
-        ros2 launch panda_moveit_config demo.launch.py
-        ```
-        RVizが起動します。
-
-    -   **ターミナル3: 障害物認識ノード**
-        ```bash
-        ros2 run obstacle_detector obstacle_node
-        ```
-        しばらくすると、RVizの`Planning Scene` -> `Scene Geometry`に`detected_obstacle`が表示されます。これはデプスカメラがGazeboの赤い箱を認識して生成したものです。
-
-    -   **ターミナル4: マニピュレーション実行ノード**
-        障害物がRVizに表示されたことを確認してから、以下のコマンドを実行します。
-        ```bash
-        ros2 run motion_commander motion_node
-        ```
-        ロボットが、RViz上で表現されている`detected_obstacle`を**回避**して、目標位置（障害物の向こう側）へ移動する様子がGazeboとRVizで確認できます。
-
----
-
-### 6. まとめと今後の展望
-
-このガイドでは、ROS 2 HumbleとGazebo Fortress、MoveIt! 2を用いて、マニピュレータのシミュレーション環境をゼロから構築しました。さらに、デプスカメラからの情報を使って動的に障害物を認識し、それを回避する動作計画を実行する一連の流れを実装しました。
-
-**今後の展望**:
--   **高度な物体認識**: 点群クラスタリング（DBSCANなど）を用いて、複数の障害物を個別に認識する。
--   **把持 (Grasping)**: 認識した物体の姿勢に合わせてハンドを動かし、物体を掴む動作を実装する。
--   **タスクプランニング**: より複雑なタスク（例：「箱を掴んで別の場所に置く」）を状態遷移やビヘイビアツリーで管理する。
--   **実機への応用**: `ros2_control`のハードウェアインターフェースを実機用に書き換えることで、このシミュレーション環境で開発したコードを実物のロボットで動かす。
+このガイドでは、ROS 2 Humbleと MoveIt! 2を用いて、マニピュレータのシミュレーション環境をゼロから構築しました。次は、動力学シミュレータIGN Gazeboと接続してシミュレーションを行います。さらに、デプスカメラからの情報を使って動的に障害物を認識し、それを回避する動作計画を実行する一連の流れを実装を行う予定です。
