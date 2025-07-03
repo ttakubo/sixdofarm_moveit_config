@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-    <xacro:macro name="sixdofarm_ros2_control" params="name initial_positions_file">
+    <xacro:macro name="sixdofarm_gazebo_ros2_control" params="name initial_positions_file">
         <xacro:property name="initial_positions" value="${load_yaml(initial_positions_file)['initial_positions']}"/>
 
         <ros2_control name="${name}" type="system">
             <hardware>
-                <!-- For simulation with mock hardware -->
-                <plugin>mock_components/GenericSystem</plugin>
+                <!-- For Gazebo simulation -->
+                <plugin>gz_ros2_control/GazeboSimSystem</plugin>
             </hardware>
             <joint name="Link1_2_Link2">
                 <command_interface name="position"/>

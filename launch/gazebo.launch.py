@@ -20,9 +20,9 @@ def generate_launch_description():
     # MoveIt設定パッケージのパスを取得
     moveit_config_pkg = get_package_share_directory('sixdofarm_moveit_config')
 
-    # XACROからURDFを生成
+    # XACROからURDFを生成（Gazebo専用）
     robot_description_config = xacro.process_file(
-        os.path.join(moveit_config_pkg, 'config', 'sixdofarm.urdf.xacro')
+        os.path.join(moveit_config_pkg, 'config', 'sixdofarm_gazebo.urdf.xacro')
     )
     robot_description = {'robot_description': robot_description_config.toxml()}
 
@@ -34,15 +34,6 @@ def generate_launch_description():
         parameters=[robot_description]
     )
 
-    # ros2_controlノードの起動
-    ros2_control_node = Node(
-        package='controller_manager',
-        executable='ros2_control_node',
-        parameters=[robot_description, os.path.join(moveit_config_pkg, 'config', 'ros2_controllers.yaml')],
-        output='screen',
-        namespace='sixdofarm'  # 追加: namespaceをsixdofarmに
-    )
-
     # Gazeboにロボットをスポーン
     spawn_entity = Node(
         package='ros_gz_sim',
@@ -51,17 +42,17 @@ def generate_launch_description():
         arguments=['-topic', '/robot_description', '-name', 'sixdofarm', '-z', '0.5']
     )
 
-    # ros2_controlコントローラをロード
+    # ros2_controlコントローラをロード（Gazeboプラグインが直接管理）
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/sixdofarm/controller_manager"],
+        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
     sixdofarm_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["sixdofarm_controller", "-c", "/sixdofarm/controller_manager"],
+        arguments=["sixdofarm_controller", "-c", "/controller_manager"],
     )
 
     return LaunchDescription([
@@ -71,13 +62,7 @@ def generate_launch_description():
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=spawn_entity,
-                on_exit=[ros2_control_node],  # spawn_entity終了後にros2_control_nodeを起動
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=ros2_control_node,
-                on_exit=[joint_state_broadcaster_spawner],
+                on_exit=[joint_state_broadcaster_spawner],  # spawn_entity終了後にコントローラーを起動
             )
         ),
         RegisterEventHandler(

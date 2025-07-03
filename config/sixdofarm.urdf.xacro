@@ -8,7 +8,7 @@
     <!-- Import control_xacro -->
     <xacro:include filename="sixdofarm.ros2_control.xacro" />
 
-
+    <!-- ros2_control for simulation -->
     <xacro:sixdofarm_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
 
 </robot>
