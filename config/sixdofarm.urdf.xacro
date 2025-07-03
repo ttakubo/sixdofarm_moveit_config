@@ -8,7 +8,40 @@
     <!-- Import control_xacro -->
     <xacro:include filename="sixdofarm.ros2_control.xacro" />
 
-    <!-- ros2_control for simulation -->
-    <xacro:sixdofarm_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
-
+    <!-- ros2_control for Gazebo -->
+    <xacro:sixdofarm_ros2_control name="GazeboSystem" initial_positions_file="$(arg initial_positions_file)"/>
+    
+    <!-- Gazebo joint properties -->
+    <gazebo reference="Link1_2_Link2">
+        <implicitSpringDamper>true</implicitSpringDamper>
+        <provideFeedback>true</provideFeedback>
+    </gazebo>
+    <gazebo reference="Link2_2_Link3">
+        <implicitSpringDamper>true</implicitSpringDamper>
+        <provideFeedback>true</provideFeedback>
+    </gazebo>
+    <gazebo reference="Link3_2_Link4">
+        <implicitSpringDamper>true</implicitSpringDamper>
+        <provideFeedback>true</provideFeedback>
+    </gazebo>
+    <gazebo reference="Link4_2_Link5">
+        <implicitSpringDamper>true</implicitSpringDamper>
+        <provideFeedback>true</provideFeedback>
+    </gazebo>
+    <gazebo reference="Link5_2_Link6">
+        <implicitSpringDamper>true</implicitSpringDamper>
+        <provideFeedback>true</provideFeedback>
+    </gazebo>
+    <gazebo reference="Link6_2_Link7">
+        <implicitSpringDamper>true</implicitSpringDamper>
+        <provideFeedback>true</provideFeedback>
+    </gazebo>
+    
+    <!-- Gazebo ros2_control plugin -->
+    <gazebo>
+        <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+            <parameters>$(find sixdofarm_moveit_config)/config/ros2_controllers_gazebo.yaml</parameters>
+            <ros2_control_name>GazeboSystem</ros2_control_name>
+        </plugin>
+    </gazebo>
 </robot>

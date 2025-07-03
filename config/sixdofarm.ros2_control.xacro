@@ -5,7 +5,62 @@
 
         <ros2_control name="${name}" type="system">
             <hardware>
-                <!-- For simulation with mock hardware -->
+                <!-- For IGN Gazebo simulation -->
+                <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+            </hardware>
+            <joint name="Link1_2_Link2">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['Link1_2_Link2']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="Link2_2_Link3">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['Link2_2_Link3']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="Link3_2_Link4">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['Link3_2_Link4']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="Link4_2_Link5">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['Link4_2_Link5']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="Link5_2_Link6">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['Link5_2_Link6']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="Link6_2_Link7">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['Link6_2_Link7']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+
+        </ros2_control>
+    </xacro:macro>
+
+    <!-- Demo用のros2_controlマクロ (Mock Hardware) -->
+    <xacro:macro name="sixdofarm_ros2_control_demo" params="name initial_positions_file">
+        <xacro:property name="initial_positions" value="${load_yaml(initial_positions_file)['initial_positions']}"/>
+
+        <ros2_control name="${name}" type="system">
+            <hardware>
+                <!-- For MoveIt Demo -->
                 <plugin>mock_components/GenericSystem</plugin>
             </hardware>
             <joint name="Link1_2_Link2">
